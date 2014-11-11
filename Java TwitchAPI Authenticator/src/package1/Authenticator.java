@@ -1,6 +1,9 @@
 package package1;
 
 import java.awt.Desktop;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,7 +16,9 @@ import javax.swing.JOptionPane;
 
 public class Authenticator {
 
-	String cID, scopes="",authCode="";
+	static String cID;
+	static String scopes="";
+	static String authCode="";
 	
 	
 	public Authenticator(String clientID, String scope) {
@@ -25,18 +30,24 @@ public class Authenticator {
 		scopes="";
 	}
 	
-	public void generateAccessToken() {
+	public static void main(String args[]) {
+		cID=JOptionPane.showInputDialog("Please enter ClientID!");
+		scopes=JOptionPane.showInputDialog("Please input the scopes you need with a '+' between multiple scopes");
+		generateAccessToken();
+	}
+	
+	public static void generateAccessToken() {
 		JOptionPane.showMessageDialog(null, "A Webpage will open on your Default Browser. Please Accept. Make Sure on the Twitch Website, your Bot's Application Redirect URI is set to http://localhost:6789");
 		try {
 			if (!scopes.equals(""))
-			Desktop.getDesktop().browse(new URI("https://api.twitch.tv/kraken/oauth2/authorize?response_type=code&client_id="+cID+"&redirect_uri=http://localhost:6789&scope="+scopes));
+			Desktop.getDesktop().browse(new URI("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id="+cID+"&redirect_uri=http://localhost:6789&scope="+scopes));
 			else {Desktop.getDesktop().browse(new URI("https://api.twitch.tv/kraken/oauth2/authorize?response_type=code&client_id="+cID+"&redirect_uri=http://localhost:6789&scope=user_read+user_blocks_edit+user_blocks_read+user_follows_edit+channel_read+channel_editor+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription+chat_login"));}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		try {
-			authCode=waitForToken();
+			waitForToken();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -53,7 +64,7 @@ public class Authenticator {
 			e.printStackTrace();
 		}
 		try {
-			authCode=waitForToken();
+		waitForToken();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -64,7 +75,7 @@ public class Authenticator {
 		return authCode;
 	}
 	
-	public String waitForToken() throws Exception {
+	public static void waitForToken() throws Exception {
 		ServerSocket serverSock = new ServerSocket(6789);
 		Socket sock = serverSock.accept();
 
@@ -81,62 +92,26 @@ public class Authenticator {
 
 		PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
 		
-		switch (code) {
+		out.write("HTTP/1.0 200 OK\r\n");
+        out.write("Content-Type: text/html\r\n");
+        out.write("\r\n");
+        out.write("<TITLE>Success</TITLE>");
+        out.write("<P>Please Read the URL in your browser. It will have a '#' and \"access_token=SOMETHING\" - This something is your Auth token. It might say that the access got denied - it means it got denied.</P>");
+		out.flush();
 		
-		case "=access_denied" : {
-			out.write("HTTP/1.0 200 OK\r\n");
-	        out.write("Content-Type: text/html\r\n");
-	        out.write("\r\n");
-	        out.write("<TITLE>Not Successful</TITLE>");
-	        out.write("<P>Authentification Denied</P>");
-			out.flush();
-			code="denied";
-			break;
-		}
-		
-		case "" : {
-			out.write("HTTP/1.0 200 OK\r\n");
-	        out.write("Content-Type: text/html\r\n");
-	        out.write("\r\n");
-	        out.write("<TITLE>Unsure</TITLE>");
-	        out.write("<P>Already authenticated or unknown Error</P>");
-	        out.flush();
-	        code="unsure";
-	        break;
-		}
-		
-		default : {
-			out.write("HTTP/1.0 200 OK\r\n");
-	        out.write("Content-Type: text/html\r\n");
-	        out.write("\r\n");
-	        out.write("<TITLE>Success</TITLE>");
-	        out.write("<P>Successfully authenticated</P>");
-			out.flush();
-		}
-		
-		}
-		
-//		if (!code.equals("=access_denied")) {
-//		out.write("HTTP/1.0 200 OK\r\n");
-//        out.write("Content-Type: text/html\r\n");
-//        out.write("\r\n");
-//        out.write("<TITLE>Success</TITLE>");
-//        out.write("<P>Successfully authenticated</P>");
-//		out.flush();} else {
-//			out.write("HTTP/1.0 200 OK\r\n");
-//	        out.write("Content-Type: text/html\r\n");
-//	        out.write("\r\n");
-//	        out.write("<TITLE>Not Successful</TITLE>");
-//	        out.write("<P>Authentification Denied</P>");
-//			out.flush();
-//			code="";
-//		}
 
 		
 		br.close();
 		out.close();
 		serverSock.close();
-		return code;
+		
+//		Clipboard clpbrd = Toolkit.getDefaultToolkit ().getSystemClipboard ();
+//		StringSelection stringSelection = new StringSelection (code);
+//		clpbrd.setContents (stringSelection, null);
+		
+		//JOptionPane.showMessageDialog(null, "Copied Oauth Token to your clipboard. You're done now :)");
+		
+//		return code;
 	}
 	
 }
